@@ -301,6 +301,7 @@ function bindEvents() {
   $("#scoreDownload").addEventListener("click",()=>exportData("scores"));
   $("#migrationButton").addEventListener("click",()=>$("#migrationInput").click());
   $("#migrationInput").addEventListener("change",async(e)=>{try{await importMigration(JSON.parse(await e.target.files[0].text()));}catch(error){toast(error.message,true)}e.target.value=""});
+  $("#migrationPasteButton").addEventListener("click",async()=>{try{const raw=$("#migrationPaste").value.trim();if(!raw)throw new Error("กรุณาวางชุดข้อมูลก่อน");await importMigration(JSON.parse(raw));$("#migrationPaste").value=""}catch(error){toast(error.message,true)}});
   $("#profileForm").addEventListener("submit",async(e)=>{e.preventDefault();const form=e.currentTarget;profile=Object.fromEntries(new FormData(form));await setDoc(doc(refs().profile,"teacher"),{...profile,updatedAt:serverTimestamp()},{merge:true});renderProfile();form.closest(".modal").classList.remove("open");toast("บันทึกโปรไฟล์แล้ว")});
   $("#studentRoom").addEventListener("change", renderStudents);
   $("#studentSearch").addEventListener("input", renderStudents);
