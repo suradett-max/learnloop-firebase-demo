@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ตัวอย่างเว็บติดตามบทเรียนที่บันทึกข้อมูลด้วย Firebase Firestore" />
+    <title>LearnLoop — ตัวติดตามบทเรียน</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=DM+Sans:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="LearnLoop หน้าแรก"><span>LL</span> LearnLoop</a>
+      <p id="syncStatus" class="status" role="status"><i></i> กำลังเชื่อมต่อ…</p>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">YOUR LEARNING SPACE</p>
+          <h1>เรียนทีละนิด<br /><em>เติบโตทุกวัน</em></h1>
+          <p class="lead">วางแผนบทเรียน ติดตามความคืบหน้า และกลับมาเรียนต่อได้จากทุกอุปกรณ์</p>
+        </div>
+        <div class="hero-card" aria-label="สรุปความคืบหน้า">
+          <div class="ring" id="progressRing"><strong id="progressPercent">0%</strong><span>สำเร็จแล้ว</span></div>
+          <div><strong id="doneCount">0</strong><span>บทเรียนที่จบ</span></div>
+          <div><strong id="totalCount">0</strong><span>บทเรียนทั้งหมด</span></div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <form id="lessonForm" class="lesson-form">
+          <div class="section-heading">
+            <div><p class="eyebrow">NEW LESSON</p><h2>เพิ่มสิ่งที่จะเรียน</h2></div>
+            <span class="quota">สูงสุด 30 รายการ</span>
+          </div>
+          <label>ชื่อบทเรียน<input id="title" name="title" maxlength="80" required placeholder="เช่น พื้นฐาน JavaScript" /></label>
+          <div class="form-row">
+            <label>หมวดหมู่<select id="category" name="category"><option>เทคโนโลยี</option><option>ภาษา</option><option>วิทยาศาสตร์</option><option>ธุรกิจ</option><option>อื่น ๆ</option></select></label>
+            <label>ระยะเวลา (นาที)<input id="minutes" name="minutes" type="number" min="5" max="600" value="30" required /></label>
+          </div>
+          <button id="submitButton" class="primary" type="submit">เพิ่มบทเรียน <span>→</span></button>
+          <p id="formMessage" class="message" aria-live="polite"></p>
+        </form>
+
+        <section class="lessons" aria-labelledby="lessonHeading">
+          <div class="section-heading">
+            <div><p class="eyebrow">MY PLAN</p><h2 id="lessonHeading">แผนการเรียน</h2></div>
+            <select id="filter" aria-label="กรองบทเรียน"><option value="all">ทั้งหมด</option><option value="todo">กำลังเรียน</option><option value="done">เรียนจบแล้ว</option></select>
+          </div>
+          <div id="emptyState" class="empty"><span>✦</span><h3>เริ่มต้นบทเรียนแรกของคุณ</h3><p>รายการที่เพิ่มจะบันทึกอย่างปลอดภัยใน Firebase</p></div>
+          <ul id="lessonList" class="lesson-list" aria-live="polite"></ul>
+        </section>
+      </section>
+    </main>
+
+    <footer><span>LearnLoop</span><p>ข้อมูลซิงก์ผ่าน Firebase Firestore</p></footer>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
