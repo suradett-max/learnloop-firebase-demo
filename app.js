@@ -23,7 +23,7 @@ async function connect() {
   if (firebaseConfig.apiKey === "REPLACE_ME") { setStatus("ยังไม่ได้ตั้งค่า Firebase"); ui.submit.disabled = true; ui.message.textContent = "กำลังรอการเชื่อม Firebase"; return; }
   try {
     const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app);
-    onAuthStateChanged(auth, (user) => { if (!user) return; lessonsRef = collection(db, "users", user.uid, "lessons"); const q = query(lessonsRef, orderBy("createdAt", "desc"), limit(30)); onSnapshot(q, (snapshot) => { lessons = snapshot.docs.map((d) => ({ id: d.id, ...d.data() })); render(); setStatus("ซิงก์แล้ว", true); }, () => setStatus("เชื่อมต่อข้อมูลไม่ได้")); });
+    onAuthStateChanged(auth, (user) => { if (!user) return; lessonsRef = collection(db, "users", user.uid, "lessons"); const q = query(lessonsRef, orderBy("createdAt", "desc"), limit(30)); onSnapshot(q, (snapshot) => { lessons = snapshot.docs.map((d) => ({ id: d.id, ...d.data() })); render(); setStatus("ซิงก์แล้ว", true); }, (error) => { console.error("Firestore listener failed", error); setStatus("เชื่อมต่อข้อมูลไม่ได้"); }); });
     await signInAnonymously(auth);
   } catch (error) { console.error(error); setStatus("เชื่อมต่อไม่ได้"); ui.message.textContent = "โปรดลองรีเฟรชอีกครั้ง"; }
 }
