@@ -17,6 +17,8 @@ let user = null;
 let students = [];
 let assignments = [];
 let subjects = [{ code: "ส22101", name: "สังคมศึกษาฯ (พระพุทธ-หน้าที่)" }];
+let classes = [];
+let profile = { displayName: "ครูสุรเดช ธรรมประโชติ", firstName: "สุรเดช", lastName: "ธรรมประโชติ", position: "ครูผู้สอน", school: "โรงเรียนวัดไร่ขิงวิทยา", department: "สังคมศึกษา ศาสนาและวัฒนธรรม", photoUrl: "" };
 let currentAttendance = {};
 let currentScores = {};
 let unsubscribers = [];
@@ -33,7 +35,10 @@ const refs = () => ({
   subjects: collection(db, "users", user.uid, "subjects"),
   assignments: collection(db, "users", user.uid, "assignments"),
   attendance: collection(db, "users", user.uid, "attendance"),
-  scores: collection(db, "users", user.uid, "scores")
+  scores: collection(db, "users", user.uid, "scores"),
+  classes: collection(db, "users", user.uid, "classes"),
+  assistants: collection(db, "users", user.uid, "assistants"),
+  profile: collection(db, "users", user.uid, "profile")
 });
 
 function escapeHtml(value = "") {
@@ -43,12 +48,20 @@ function escapeHtml(value = "") {
 }
 
 function toast(message, error = false) {
-  const el = $("#toast");
-  el.textContent = message;
-  el.style.background = error ? "#9f4038" : "#183c33";
-  el.classList.add("show");
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => el.classList.remove("show"), 2800);
+  const el = document.createElement("div");
+  el.className = `toast ${error ? "error" : "success"}`;
+  el.innerHTML = `<b>${error ? "!" : "✓"}</b><span>${escapeHtml(message)}</span>`;
+  $("#toastRegion").append(el);
+  setTimeout(() => el.remove(), 3300);
+}
+
+function confirmAction(title, message) {
+  $("#confirmTitle").textContent = title; $("#confirmMessage").textContent = message;
+  $("#confirmModal").classList.add("open");
+  return new Promise((resolve) => {
+    const finish = (value) => { $("#confirmModal").classList.remove("open"); resolve(value); };
+    $("#confirmAccept").onclick = () => finish(true); $("#confirmCancel").onclick = () => finish(false);
+  });
 }
 
 function showView(name) {
@@ -109,6 +122,7 @@ function renderDashboard() {
   $("#statStudents").textContent = students.length;
   $("#statPresent").textContent = present;
   $("#statPresentPct").textContent = `${pct}%`;
+  $("#heroPresent").textContent = `${pct}%`;
   $("#statAbsent").textContent = other;
   $("#statAssignments").textContent = assignments.length;
   const statusCounts = ["present", "late", "leave", "absent"].map((key) => Object.values(currentAttendance).filter((v) => v === key).length);
@@ -118,12 +132,32 @@ function renderDashboard() {
   let angle = 0;
   const stops = statusCounts.map((count, i) => { const start = angle; angle += total ? count / total * 360 : 0; return `${colors[i]} ${start}deg ${angle}deg`; });
   $("#attendanceChart").innerHTML = `<div class="donut" style="background:${total ? `conic-gradient(${stops.join(",")})` : "#edf0ee"}"><strong>${pct}%</strong></div><div class="chart-legend">${labels.map((label, i) => `<span><i style="background:${colors[i]}"></i>${label} <strong>${statusCounts[i]}</strong></span>`).join("")}</div>`;
-  $("#classOverview").innerHTML = [8, 9, 10].map((room) => {
-    const count = studentsInRoom(room).length;
+  const cards = classes.length ? classes : [...new Set(students.map((s) => String(s.room)))].map((room) => ({ room, subject: "ส22101", grade: "ม.2" }));
+  $("#classOverview").innerHTML = cards.map((item) => {
+    const room = item.room; const count = studentsInRoom(room).length;
     const roomChecked = studentsInRoom(room).filter((s) => currentAttendance[s.id]).length;
     const progress = count ? Math.round(roomChecked / count * 100) : 0;
-    return `<div class="class-card"><header><strong>ม.2/${room}</strong><span>${count} คน</span></header><div class="progress"><i style="width:${progress}%"></i></div><span>เช็กชื่อแล้ว ${progress}%</span></div>`;
+    return `<div class="class-card"><header><strong>${escapeHtml(item.grade || "ม.2")}/${escapeHtml(room)}</strong><span>${count} คน</span></header><div class="progress"><i style="width:${progress}%"></i></div><span>${escapeHtml(item.subject || "")} · เช็กชื่อ ${progress}%</span></div>`;
   }).join("");
+}
+
+function renderProfile() {
+  $("#profileName").textContent = profile.firstName ? `ครู${profile.firstName}` : profile.displayName;
+  $("#profileRole").textContent = profile.position || "ครูผู้สอน";
+  $("#profileAvatar").textContent = `${profile.firstName?.[0] || "ส"}${profile.lastName?.[0] || "ธ"}`;
+  $("#profileAvatar").style.backgroundImage = profile.photoUrl ? `url("${profile.photoUrl}")` : "";
+  $("#printTeacher").textContent = `( ${profile.displayName || "ครูสุรเดช ธรรมประโชติ"} )`;
+  Object.entries(profile).forEach(([key, value]) => { const input = $(`#profileForm [name="${key}"]`); if (input) input.value = value || ""; });
+}
+
+function updateRoomOptions() {
+  const rooms = [...new Set([...students.map((s) => String(s.room)), ...classes.map((c) => String(c.room))])].filter(Boolean).sort((a, b) => Number(a) - Number(b));
+  const finalRooms = rooms.length ? rooms : ["8", "9", "10"];
+  ["#studentRoom", "#attendanceRoom", "#scoreRoom", ".room-select"].forEach((selector) => $$(selector).forEach((el) => {
+    const old = el.value; const all = el.id === "studentRoom" ? '<option value="all">ทุกห้อง</option>' : "";
+    el.innerHTML = all + finalRooms.map((r) => `<option value="${r}">${r}</option>`).join("");
+    if ([...el.options].some((o) => o.value === old)) el.value = old;
+  }));
 }
 
 function attendanceDocId() {
@@ -206,13 +240,68 @@ async function importStudents(list) {
   toast(`นำเข้าสำเร็จ ${list.length} คน`);
 }
 
+function csvEscape(value) { const text = String(value ?? ""); return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text; }
+function downloadFile(name, content, type = "text/csv;charset=utf-8") {
+  const blob = new Blob([type.includes("csv") ? "\uFEFF" + content : content], { type });
+  const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
+  toast(`ดาวน์โหลด ${name} แล้ว`);
+}
+
+function exportData(type) {
+  if (type === "students") {
+    const room = $("#studentRoom").value; const list = students.filter((s) => room === "all" || String(s.room) === room);
+    const rows = [["เลขที่","รหัสนักเรียน","คำนำหน้า","ชื่อ","นามสกุล","ชื่อ-นามสกุล","ระดับชั้น","ห้อง"], ...list.map((s) => [s.number,s.studentId,s.prefix,s.firstName,s.lastName,s.name,s.grade,s.room])];
+    return downloadFile(`รายชื่อนักเรียน_${room === "all" ? "ทุกห้อง" : `ม2-${room}`}.csv`, rows.map((r) => r.map(csvEscape).join(",")).join("\n"));
+  }
+  if (type === "attendance") {
+    const room = $("#attendanceRoom").value; const labels = {present:"มา",late:"สาย",leave:"ลา",absent:"ขาด"};
+    const rows = [["วันที่","รหัสวิชา","ชั้น","ห้อง","เลขที่","รหัสนักเรียน","ชื่อ-นามสกุล","สถานะ"], ...studentsInRoom(room).map((s) => [$("#attendanceDate").value,$("#attendanceSubject").value,s.grade,room,s.number,s.studentId,s.name,labels[currentAttendance[s.id]] || "-"])];
+    return downloadFile(`เช็กชื่อ_${$("#attendanceDate").value}_ม2-${room}.csv`, rows.map((r) => r.map(csvEscape).join(",")).join("\n"));
+  }
+  if (type === "scores") {
+    const assignment = assignments.find((a) => a.id === $("#assignmentSelect").value); if (!assignment) return toast("กรุณาเลือกงาน/ข้อสอบก่อน", true);
+    const rows = [["เลขที่","รหัสนักเรียน","ชื่อ-นามสกุล","สถานะ","คะแนน","คะแนนเต็ม","หมายเหตุ"], ...studentsInRoom($("#scoreRoom").value).map((s) => { const v=currentScores[s.id]||{}; return [s.number,s.studentId,s.name,v.status||"pending",v.score??"",assignment.maxScore,v.note||""]; })];
+    return downloadFile(`คะแนน_${assignment.subject}_${assignment.title}.csv`, rows.map((r) => r.map(csvEscape).join(",")).join("\n"));
+  }
+  if (type === "backup") downloadFile(`ClassroomOS_backup_${today}.json`, JSON.stringify({ profile, classes, subjects, students, assignments }, null, 2), "application/json");
+}
+
+function preparePrint() {
+  const active = $(".view.active").id; let title = "รายงาน Classroom OS", subtitle = "", content = "";
+  if (active === "students") { title = "บัญชีรายชื่อนักเรียน"; subtitle = `ระดับชั้น ม.2 · ห้อง ${$("#studentRoom").value === "all" ? "ทุกห้อง" : $("#studentRoom").value} · ภาคเรียน 1/2569`; content = `<table><thead><tr><th>เลขที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>ชั้น/ห้อง</th></tr></thead><tbody>${students.filter((s)=>$("#studentRoom").value==="all"||String(s.room)===$("#studentRoom").value).map((s)=>`<tr><td>${s.number}</td><td>${escapeHtml(s.studentId)}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.grade)}/${escapeHtml(s.room)}</td></tr>`).join("")}</tbody></table>`; }
+  else if (active === "attendance") { title = "แบบบันทึกการมาเรียน"; subtitle = `${$("#attendanceSubject option:checked").textContent} · ม.2/${$("#attendanceRoom").value} · ${formatDate($("#attendanceDate").value)}`; const labels={present:"มา",late:"สาย",leave:"ลา",absent:"ขาด"}; content=`<table><thead><tr><th>เลขที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th><th>หมายเหตุ</th></tr></thead><tbody>${studentsInRoom($("#attendanceRoom").value).map((s)=>`<tr><td>${s.number}</td><td>${s.studentId}</td><td>${escapeHtml(s.name)}</td><td>${labels[currentAttendance[s.id]]||"-"}</td><td></td></tr>`).join("")}</tbody></table>`; }
+  else if (active === "scores") { const a=assignments.find((x)=>x.id===$("#assignmentSelect").value); title="แบบบันทึกคะแนน"; subtitle=a?`${a.subject} · ${a.title} · ม.2/${a.room} · คะแนนเต็ม ${a.maxScore}`:"กรุณาเลือกงาน/ข้อสอบ"; content=a?`<table><thead><tr><th>เลขที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th><th>คะแนน</th></tr></thead><tbody>${studentsInRoom(a.room).map((s)=>{const v=currentScores[s.id]||{};return `<tr><td>${s.number}</td><td>${s.studentId}</td><td>${escapeHtml(s.name)}</td><td>${v.status||"ยังไม่ส่ง"}</td><td>${v.score??""}</td></tr>`}).join("")}</tbody></table>`:""; }
+  else { title="สรุปภาพรวมชั้นเรียน"; subtitle=`ภาคเรียน 1/2569 · พิมพ์เมื่อ ${new Date().toLocaleString("th-TH")}`; content=$("#classOverview").outerHTML; }
+  $("#printTitle").textContent=title; $("#printSubtitle").textContent=subtitle; $("#printContent").innerHTML=content; window.print();
+}
+
+async function importMigration(data) {
+  if (!data?.meta || !Array.isArray(data.students) || data.meta.teacherId !== "USR-20260616-144217") throw new Error("ไฟล์ Migration ไม่ตรงกับบัญชีครูสุรเดช");
+  const total = [data.students,data.subjects,data.classes,data.assignments,data.scores,data.attendance,data.assistants].reduce((n,x)=>n+(x?.length||0),1);
+  if (!(await confirmAction("นำเข้าข้อมูลระบบเดิม", `พบข้อมูล ${total.toLocaleString("th-TH")} ชุด ระบบจะอัปเดตข้อมูลที่รหัสตรงกันโดยไม่สร้างรายการซ้ำ`))) return;
+  const collections = [["students",data.students],["subjects",data.subjects],["classes",data.classes],["assignments",data.assignments],["scores",data.scores],["attendance",data.attendance],["assistants",data.assistants]];
+  const operations = [["profile","teacher",data.profile], ...collections.flatMap(([name,items]) => (items||[]).map((item)=>[name,String(item.id),item]))];
+  for (let i=0;i<operations.length;i+=400) { const batch=writeBatch(db); operations.slice(i,i+400).forEach(([name,id,value])=>batch.set(doc(db,"users",user.uid,name,id),{...value,updatedAt:serverTimestamp()},{merge:true})); await batch.commit(); }
+  toast(`ย้ายข้อมูลสำเร็จ ${total.toLocaleString("th-TH")} ชุด`); $("#profileModal").classList.remove("open");
+}
+
 function bindEvents() {
   $$("#nav button").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
   $$('[data-go]').forEach((button) => button.addEventListener("click", () => showView(button.dataset.go)));
   $("#menuButton").addEventListener("click", () => $(".sidebar").classList.toggle("open"));
   $$('[data-modal]').forEach((button) => button.addEventListener("click", () => $(`#${button.dataset.modal}`).classList.add("open")));
-  $$(".modal").forEach((modal) => { $(".close", modal).addEventListener("click", () => modal.classList.remove("open")); modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("open"); }); });
-  $$(".print").forEach((button) => button.addEventListener("click", () => window.print()));
+  $$(".modal").forEach((modal) => { const close=$(".close",modal); if(close) close.addEventListener("click",()=>modal.classList.remove("open")); modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("open"); }); });
+  $$(".close-secondary").forEach((button)=>button.addEventListener("click",()=>button.closest(".modal").classList.remove("open")));
+  $$(".print").forEach((button) => button.addEventListener("click", preparePrint));
+  $("#profileButton").addEventListener("click",()=>$("#profileModal").classList.add("open"));
+  $("#openExport").addEventListener("click",()=>$("#exportModal").classList.add("open"));
+  $$("[data-export]").forEach((button)=>button.addEventListener("click",()=>exportData(button.dataset.export)));
+  $("#studentDownload").addEventListener("click",()=>exportData("students"));
+  $("#attendanceDownload").addEventListener("click",()=>exportData("attendance"));
+  $("#scoreDownload").addEventListener("click",()=>exportData("scores"));
+  $("#migrationButton").addEventListener("click",()=>$("#migrationInput").click());
+  $("#migrationInput").addEventListener("change",async(e)=>{try{await importMigration(JSON.parse(await e.target.files[0].text()));}catch(error){toast(error.message,true)}e.target.value=""});
+  $("#profileForm").addEventListener("submit",async(e)=>{e.preventDefault();const form=e.currentTarget;profile=Object.fromEntries(new FormData(form));await setDoc(doc(refs().profile,"teacher"),{...profile,updatedAt:serverTimestamp()},{merge:true});renderProfile();form.closest(".modal").classList.remove("open");toast("บันทึกโปรไฟล์แล้ว")});
   $("#studentRoom").addEventListener("change", renderStudents);
   $("#studentSearch").addEventListener("input", renderStudents);
   $("#attendanceRoom").addEventListener("change", loadAttendance);
@@ -247,9 +336,11 @@ function bindEvents() {
 function subscribe() {
   unsubscribers.forEach((fn) => fn());
   unsubscribers = [
-    onSnapshot(query(refs().students, orderBy("number"), limit(300)), (snap) => { students = snap.docs.map((d) => ({ id: d.id, ...d.data() })); renderStudents(); loadAttendance(); }),
+    onSnapshot(query(refs().students, orderBy("number"), limit(500)), (snap) => { students = snap.docs.map((d) => ({ id: d.id, ...d.data() })); updateRoomOptions(); renderStudents(); loadAttendance(); }),
     onSnapshot(query(refs().assignments, orderBy("createdAt", "desc"), limit(100)), (snap) => { assignments = snap.docs.map((d) => ({ id: d.id, ...d.data() })); renderAssignments(); }),
-    onSnapshot(query(refs().subjects, limit(30)), (snap) => { const custom = snap.docs.map((d) => ({ id: d.id, ...d.data() })); subjects = custom.length ? custom : subjects; renderSubjects(); })
+    onSnapshot(query(refs().subjects, limit(30)), (snap) => { const custom = snap.docs.map((d) => ({ id: d.id, ...d.data() })); subjects = custom.length ? custom : subjects; renderSubjects(); }),
+    onSnapshot(query(refs().classes, limit(50)), (snap) => { classes = snap.docs.map((d) => ({ id: d.id, ...d.data() })); updateRoomOptions(); renderDashboard(); }),
+    onSnapshot(query(refs().profile, limit(1)), (snap) => { if (!snap.empty) profile = { ...profile, ...snap.docs[0].data() }; renderProfile(); })
   ];
   $("#syncStatus").classList.add("online");
   $("#syncStatus").lastChild.textContent = " เชื่อมต่อแล้ว";
@@ -258,6 +349,8 @@ function subscribe() {
 $("#attendanceDate").value = today;
 $("#todayLabel").textContent = new Intl.DateTimeFormat("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
 $("#assignmentForm input[name=dueDate]").value = today;
+const updateClock = () => { $("#clockTime").textContent = new Intl.DateTimeFormat("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date()); };
+updateClock(); setInterval(updateClock, 1000); renderProfile(); updateRoomOptions();
 bindEvents();
 onAuthStateChanged(auth, (account) => { if (account) { user = account; subscribe(); } });
 signInAnonymously(auth).catch((error) => { console.error(error); $("#syncStatus").lastChild.textContent = " เชื่อมต่อไม่ได้"; toast("เชื่อม Firebase ไม่สำเร็จ กรุณารีเฟรชอีกครั้ง", true); });
