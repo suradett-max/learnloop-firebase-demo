@@ -1,0 +1,24 @@
+.assignment-card {
+  cursor: default;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px;
+}
+
+.assignment-card > button:first-child {
+  flex: 1;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.delete-assignment {
+  border: 0;
+  background: transparent;
+  color: #bb6a5e;
+  font-size: 18px;
+  cursor: pointer;
+}

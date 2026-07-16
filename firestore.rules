@@ -1,21 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/lessons/{lessonId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['title', 'category', 'minutes', 'done', 'createdAt'])
-        && request.resource.data.title is string
-        && request.resource.data.title.size() > 0
-        && request.resource.data.title.size() <= 80
-        && request.resource.data.minutes is int
-        && request.resource.data.minutes >= 5
-        && request.resource.data.minutes <= 600
-        && request.resource.data.done == false;
-      allow update: if request.auth != null && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done'])
-        && request.resource.data.done is bool;
-      allow delete: if request.auth != null && request.auth.uid == userId;
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/{collectionName}/{documentId} {
+      allow read: if isOwner(userId)
+        && collectionName in ['students', 'subjects', 'assignments', 'attendance', 'scores'];
+      allow create, update: if isOwner(userId)
+        && collectionName in ['students', 'subjects', 'assignments', 'attendance', 'scores']
+        && request.resource.data.keys().size() <= 12;
+      allow delete: if isOwner(userId)
+        && collectionName in ['students', 'subjects', 'assignments', 'attendance', 'scores'];
     }
   }
 }

@@ -1,17 +1,25 @@
-# LearnLoop
+# LearnLoop Classroom
 
-เว็บตัวอย่างติดตามบทเรียนแบบครบวงจร เชื่อม Firebase Authentication และ Cloud Firestore
+ระบบเช็กชื่อ เช็กงาน และบันทึกคะแนนนักเรียนชั้นมัธยมศึกษาปีที่ 2 โรงเรียนวัดไร่ขิงวิทยา เชื่อมต่อ Firebase Authentication และ Cloud Firestore
 
-## จุดเด่น
+## ความสามารถ
 
-- เพิ่ม ทำเครื่องหมายสำเร็จ กรอง และลบบทเรียน
-- Anonymous Authentication แยกข้อมูลของผู้ใช้แต่ละเบราว์เซอร์
-- Firestore Security Rules ตรวจสิทธิ์และรูปแบบข้อมูล
-- จำกัด 30 รายการต่อผู้ใช้และใช้ snapshot listener เดียวเพื่อประหยัด Spark quota
-- Responsive และ deploy ได้ทั้ง Firebase Hosting / GitHub Pages
+- แดชบอร์ดสรุปนักเรียน การเข้าเรียน งาน และภาพรวมห้อง ม.2/8–ม.2/10
+- จัดการรายชื่อนักเรียน เพิ่มทีละคน นำเข้า CSV และ Google Sheets ที่เผยแพร่เป็น CSV
+- เช็กชื่อแยกวันที่ รายวิชา และห้อง พร้อมสถานะ มา สาย ลา ขาด
+- สร้างรายวิชา งาน หรือข้อสอบ และบันทึกสถานะส่งงาน คะแนน และหมายเหตุ
+- รองรับการพิมพ์และหน้าจอมือถือ
+- ข้อมูลแยกตามผู้ใช้ Anonymous Authentication และจัดเก็บใน Firestore
 
-## รันในเครื่อง
+## รูปแบบ CSV
 
-เปิด static server ที่โฟลเดอร์นี้ แล้วเข้าผ่าน `http://localhost:4173`
+```csv
+number,studentId,name,grade,room
+1,12345,เด็กชายตัวอย่าง นักเรียน,ม.2,8
+```
 
-> ต้องตั้งค่า `firebase-config.js`, เปิด Anonymous Authentication และ deploy `firestore.rules` ก่อนใช้งานข้อมูลจริง
+การนำเข้าจาก Google Sheets ให้เผยแพร่ชีตเป็น CSV แล้วนำลิงก์ CSV มาใส่ในระบบ
+
+## การเผยแพร่
+
+เว็บเป็น Static Site ใช้งานได้ทั้ง GitHub Pages และ Firebase Hosting โดยต้องเปิด Anonymous Authentication และเผยแพร่ `firestore.rules` ก่อนใช้งาน

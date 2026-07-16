@@ -1,62 +1,66 @@
 <!doctype html>
 <html lang="th">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="ตัวอย่างเว็บติดตามบทเรียนที่บันทึกข้อมูลด้วย Firebase Firestore" />
-    <title>LearnLoop — ตัวติดตามบทเรียน</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=DM+Sans:wght@600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <header class="topbar">
-      <a class="brand" href="#" aria-label="LearnLoop หน้าแรก"><span>LL</span> LearnLoop</a>
-      <p id="syncStatus" class="status" role="status"><i></i> กำลังเชื่อมต่อ…</p>
-    </header>
-
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="LearnLoop ระบบเช็กชื่อ เช็กงาน และคะแนนนักเรียนชั้น ม.2 โรงเรียนวัดไร่ขิงวิทยา">
+  <title>LearnLoop | ระบบดูแลชั้นเรียน ม.2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./components.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#"><span>LL</span><div>LearnLoop<small>Teacher workspace</small></div></a>
+    <nav id="nav">
+      <button class="active" data-view="dashboard"><b>⌂</b> ภาพรวม</button>
+      <button data-view="students"><b>♙</b> นักเรียน</button>
+      <button data-view="attendance"><b>✓</b> เช็กชื่อ</button>
+      <button data-view="scores"><b>☆</b> งานและคะแนน</button>
+    </nav>
+    <div class="school-card"><span>WR</span><div><strong>โรงเรียนวัดไร่ขิงวิทยา</strong><small>มัธยมศึกษาปีที่ 2</small></div></div>
+  </aside>
+  <div class="shell">
+    <header class="topbar"><div><button id="menuButton" class="icon mobile">☰</button><p id="pageEyebrow">ศูนย์ข้อมูลชั้นเรียน</p><h1 id="pageTitle">ภาพรวมวันนี้</h1></div><div class="top-actions"><span id="todayLabel"></span><span id="syncStatus" class="sync"><i></i> กำลังเชื่อมต่อ</span></div></header>
     <main>
-      <section class="hero">
-        <div>
-          <p class="eyebrow">YOUR LEARNING SPACE</p>
-          <h1>เรียนทีละนิด<br /><em>เติบโตทุกวัน</em></h1>
-          <p class="lead">วางแผนบทเรียน ติดตามความคืบหน้า และกลับมาเรียนต่อได้จากทุกอุปกรณ์</p>
+      <section id="dashboard" class="view active">
+        <div class="welcome"><div><span class="pill">ภาคเรียนที่ 1 / 2569</span><h2>สวัสดีครับคุณครู 👋</h2><p>ทุกข้อมูลสำคัญของนักเรียน ม.2 พร้อมให้ติดตามในที่เดียว</p></div><button class="primary" data-go="attendance">เช็กชื่อนักเรียน <span>→</span></button></div>
+        <div class="stats">
+          <article><span class="stat-icon mint">♙</span><div><small>นักเรียนทั้งหมด</small><strong id="statStudents">0</strong><em>คน</em></div></article>
+          <article><span class="stat-icon blue">✓</span><div><small>มาเรียนวันนี้</small><strong id="statPresent">0</strong><em id="statPresentPct">0%</em></div></article>
+          <article><span class="stat-icon coral">!</span><div><small>ขาด / ลา / สาย</small><strong id="statAbsent">0</strong><em>คน</em></div></article>
+          <article><span class="stat-icon yellow">☆</span><div><small>งานที่ติดตาม</small><strong id="statAssignments">0</strong><em>รายการ</em></div></article>
         </div>
-        <div class="hero-card" aria-label="สรุปความคืบหน้า">
-          <div class="ring" id="progressRing"><strong id="progressPercent">0%</strong><span>สำเร็จแล้ว</span></div>
-          <div><strong id="doneCount">0</strong><span>บทเรียนที่จบ</span></div>
-          <div><strong id="totalCount">0</strong><span>บทเรียนทั้งหมด</span></div>
+        <div class="dashboard-grid">
+          <article class="panel"><div class="panel-head"><div><small>ATTENDANCE</small><h3>สรุปการเข้าเรียนวันนี้</h3></div><button class="link" data-go="attendance">ดูรายละเอียด →</button></div><div id="attendanceChart" class="donut-wrap"></div></article>
+          <article class="panel"><div class="panel-head"><div><small>QUICK ACTIONS</small><h3>เริ่มงานอย่างรวดเร็ว</h3></div></div><div class="quick"><button data-go="students"><b>＋</b><span>เพิ่มนักเรียน<small>ทีละคนหรือนำเข้ารายชื่อ</small></span></button><button data-go="attendance"><b>✓</b><span>เช็กชื่อวันนี้<small>บันทึกพร้อมกันทั้งห้อง</small></span></button><button data-go="scores"><b>☆</b><span>เพิ่มงานหรือข้อสอบ<small>บันทึกคะแนนรายบุคคล</small></span></button></div></article>
         </div>
+        <article class="panel"><div class="panel-head"><div><small>CLASSROOMS</small><h3>ภาพรวมห้องเรียน ม.2</h3></div><span class="muted">อัปเดตจากข้อมูลล่าสุด</span></div><div id="classOverview" class="class-grid"></div></article>
       </section>
 
-      <section class="workspace">
-        <form id="lessonForm" class="lesson-form">
-          <div class="section-heading">
-            <div><p class="eyebrow">NEW LESSON</p><h2>เพิ่มสิ่งที่จะเรียน</h2></div>
-            <span class="quota">สูงสุด 30 รายการ</span>
-          </div>
-          <label>ชื่อบทเรียน<input id="title" name="title" maxlength="80" required placeholder="เช่น พื้นฐาน JavaScript" /></label>
-          <div class="form-row">
-            <label>หมวดหมู่<select id="category" name="category"><option>เทคโนโลยี</option><option>ภาษา</option><option>วิทยาศาสตร์</option><option>ธุรกิจ</option><option>อื่น ๆ</option></select></label>
-            <label>ระยะเวลา (นาที)<input id="minutes" name="minutes" type="number" min="5" max="600" value="30" required /></label>
-          </div>
-          <button id="submitButton" class="primary" type="submit">เพิ่มบทเรียน <span>→</span></button>
-          <p id="formMessage" class="message" aria-live="polite"></p>
-        </form>
+      <section id="students" class="view">
+        <div class="view-head"><div><p>STUDENT DIRECTORY</p><h2>จัดการรายชื่อนักเรียน</h2><span>รองรับการเพิ่มทีละคน, CSV และ Google Sheets</span></div><div class="actions"><button class="soft" data-modal="sheetModal">Sheets</button><button class="soft" id="csvButton">CSV</button><button class="primary" data-modal="studentModal">＋ เพิ่มนักเรียน</button><input id="csvInput" type="file" accept=".csv,text/csv" hidden></div></div>
+        <article class="panel"><div class="filters"><label>ระดับชั้น<select id="studentGrade"><option>ม.2</option></select></label><label>ห้อง<select id="studentRoom"><option value="all">ทุกห้อง</option><option>8</option><option>9</option><option>10</option></select></label><label class="search">ค้นหา<input id="studentSearch" placeholder="ชื่อ เลขที่ หรือรหัสนักเรียน"></label><button class="soft print">พิมพ์</button></div><div class="table-wrap"><table><thead><tr><th>เลขที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>ชั้น/ห้อง</th><th>สถานะ</th><th></th></tr></thead><tbody id="studentRows"></tbody></table></div><div id="studentEmpty" class="empty">ยังไม่มีรายชื่อนักเรียน — เริ่มจาก “เพิ่มนักเรียน” หรือ Import CSV</div></article>
+      </section>
 
-        <section class="lessons" aria-labelledby="lessonHeading">
-          <div class="section-heading">
-            <div><p class="eyebrow">MY PLAN</p><h2 id="lessonHeading">แผนการเรียน</h2></div>
-            <select id="filter" aria-label="กรองบทเรียน"><option value="all">ทั้งหมด</option><option value="todo">กำลังเรียน</option><option value="done">เรียนจบแล้ว</option></select>
-          </div>
-          <div id="emptyState" class="empty"><span>✦</span><h3>เริ่มต้นบทเรียนแรกของคุณ</h3><p>รายการที่เพิ่มจะบันทึกอย่างปลอดภัยใน Firebase</p></div>
-          <ul id="lessonList" class="lesson-list" aria-live="polite"></ul>
-        </section>
+      <section id="attendance" class="view">
+        <div class="view-head"><div><p>DAILY ATTENDANCE</p><h2>เช็กชื่อเข้าเรียน</h2><span>บันทึกสถานะรายวันแยกตามรายวิชาและห้องเรียน</span></div><div class="actions"><button id="clearAttendance" class="danger">ล้างการเช็กชื่อวันนี้</button><button class="soft print">พิมพ์</button><button id="saveAttendance" class="primary">บันทึกทั้งหมด</button></div></div>
+        <article class="panel"><div class="filters attendance-filters"><label>วันที่<input id="attendanceDate" type="date"></label><label>รายวิชา<select id="attendanceSubject"><option value="ส22101">ส22101 สังคมศึกษาฯ (พระพุทธ-หน้าที่)</option></select></label><label>ระดับชั้น<select><option>ม.2</option></select></label><label>ห้อง<select id="attendanceRoom"><option>8</option><option>9</option><option>10</option></select></label><button id="loadAttendance" class="soft">โหลด</button></div></article>
+        <article class="panel"><div class="legend"><span><i class="present"></i>มา</span><span><i class="late"></i>สาย</span><span><i class="leave"></i>ลา</span><span><i class="absent"></i>ขาด</span><strong id="attendanceSummary"></strong></div><div id="attendanceList" class="attendance-list"></div><div id="attendanceEmpty" class="empty">ห้องนี้ยังไม่มีนักเรียน กรุณาเพิ่มหรือนำเข้ารายชื่อก่อน</div></article>
+      </section>
+
+      <section id="scores" class="view">
+        <div class="view-head"><div><p>ASSIGNMENTS & SCORES</p><h2>ส่งงานและคะแนน</h2><span>สร้างงาน ข้อสอบ และติดตามคะแนนรายบุคคล</span></div><div class="actions"><button class="soft" data-modal="subjectModal">＋ เพิ่มวิชา</button><button class="soft" data-modal="sheetModal">Sheets</button><button class="soft">CSV</button><button class="soft print">พิมพ์</button><button class="primary" data-modal="assignmentModal">＋ เพิ่มงาน/สอบ</button></div></div>
+        <article class="panel"><div class="filters"><label>วิชา<select id="scoreSubject"><option value="ส22101">ส22101 สังคมศึกษาฯ (พระพุทธ-หน้าที่)</option></select></label><label>ระดับชั้น<select><option>ม.2</option></select></label><label>ห้อง<select id="scoreRoom"><option>8</option><option>9</option><option>10</option></select></label><label>งาน/ข้อสอบ<select id="assignmentSelect"><option value="">เลือกงาน/ข้อสอบ</option></select></label><button id="saveScores" class="primary">บันทึกทั้งหมด</button></div></article>
+        <article class="panel"><div id="assignmentCards" class="assignment-cards"></div><div class="table-wrap"><table><thead><tr><th>เลขที่</th><th>ชื่อ-นามสกุล</th><th>สถานะส่งงาน</th><th>คะแนน</th><th>หมายเหตุ</th></tr></thead><tbody id="scoreRows"></tbody></table></div><div id="scoreEmpty" class="empty">เพิ่มงาน/ข้อสอบ แล้วเลือกรายการเพื่อเริ่มบันทึกคะแนน</div></article>
       </section>
     </main>
+  </div>
 
-    <footer><span>LearnLoop</span><p>ข้อมูลซิงก์ผ่าน Firebase Firestore</p></footer>
-    <script type="module" src="./app.js"></script>
-  </body>
-</html>
+  <div id="studentModal" class="modal"><form id="studentForm" class="dialog"><button type="button" class="close">×</button><p>NEW STUDENT</p><h3>เพิ่มนักเรียน</h3><div class="form-grid"><label>เลขที่<input name="number" type="number" min="1" required></label><label>รหัสนักเรียน<input name="studentId" required></label><label class="wide">ชื่อ-นามสกุล<input name="name" required></label><label>ระดับชั้น<select name="grade"><option>ม.2</option></select></label><label>ห้อง<select name="room"><option>8</option><option>9</option><option>10</option></select></label></div><button class="primary wide-button">บันทึกนักเรียน</button></form></div>
+  <div id="assignmentModal" class="modal"><form id="assignmentForm" class="dialog"><button type="button" class="close">×</button><p>NEW ASSIGNMENT</p><h3>เพิ่มงานหรือข้อสอบ</h3><label>ชื่องาน/ข้อสอบ<input name="title" required></label><div class="form-grid"><label>คะแนนเต็ม<input name="maxScore" type="number" min="1" value="10" required></label><label>กำหนดส่ง<input name="dueDate" type="date" required></label><label>วิชา<select name="subject"><option value="ส22101">ส22101 สังคมศึกษาฯ</option></select></label><label>ห้อง<select name="room"><option>8</option><option>9</option><option>10</option></select></label></div><button class="primary wide-button">สร้างรายการ</button></form></div>
+  <div id="sheetModal" class="modal"><form id="sheetForm" class="dialog"><button type="button" class="close">×</button><p>GOOGLE SHEETS</p><h3>นำเข้าจาก Google Sheets</h3><label>ลิงก์ CSV ที่เผยแพร่จาก Google Sheets<input name="url" type="url" placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv" required></label><small class="hint">หัวตาราง: number, studentId, name, grade, room</small><button class="primary wide-button">นำเข้ารายชื่อ</button></form></div>
+  <div id="subjectModal" class="modal"><form id="subjectForm" class="dialog"><button type="button" class="close">×</button><p>NEW SUBJECT</p><h3>เพิ่มรายวิชา</h3><label>รหัสวิชา<input name="code" required></label><label>ชื่อวิชา<input name="name" required></label><button class="primary wide-button">เพิ่มรายวิชา</button></form></div>
+  <div id="toast" class="toast"></div>
+  <script type="module" src="./app.js"></script>
+</body></html>
