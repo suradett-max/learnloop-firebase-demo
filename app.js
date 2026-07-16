@@ -280,7 +280,8 @@ async function importMigration(data) {
   const total = [data.students,data.subjects,data.classes,data.assignments,data.scores,data.attendance,data.assistants].reduce((n,x)=>n+(x?.length||0),1);
   if (!(await confirmAction("นำเข้าข้อมูลระบบเดิม", `พบข้อมูล ${total.toLocaleString("th-TH")} ชุด ระบบจะอัปเดตข้อมูลที่รหัสตรงกันโดยไม่สร้างรายการซ้ำ`))) return;
   const collections = [["students",data.students],["subjects",data.subjects],["classes",data.classes],["assignments",data.assignments],["scores",data.scores],["attendance",data.attendance],["assistants",data.assistants]];
-  const operations = [["profile","teacher",data.profile], ...collections.flatMap(([name,items]) => (items||[]).map((item)=>[name,String(item.id),item]))];
+  const safeDocumentId = (value) => encodeURIComponent(String(value || crypto.randomUUID()));
+  const operations = [["profile","teacher",data.profile], ...collections.flatMap(([name,items]) => (items||[]).map((item)=>[name,safeDocumentId(item.id),item]))];
   for (let i=0;i<operations.length;i+=400) { const batch=writeBatch(db); operations.slice(i,i+400).forEach(([name,id,value])=>batch.set(doc(db,"users",user.uid,name,id),{...value,updatedAt:serverTimestamp()},{merge:true})); await batch.commit(); }
   toast(`ย้ายข้อมูลสำเร็จ ${total.toLocaleString("th-TH")} ชุด`); $("#profileModal").classList.remove("open");
 }
