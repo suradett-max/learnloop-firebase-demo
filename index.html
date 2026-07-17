@@ -8,10 +8,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=classroom-os-2569">
 </head>
 <body>
+  <section id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card">
+      <div class="login-mark">CO</div><p>CLASSROOM OS · WRK</p><h1>เข้าสู่พื้นที่ชั้นเรียน</h1>
+      <span>ข้อมูลของครูแต่ละคนแยกจากกันอย่างปลอดภัย</span>
+      <label>ชื่อผู้ใช้<input id="loginUsername" autocomplete="username" required placeholder="ชื่อผู้ใช้เดิม"></label>
+      <label>รหัสผ่าน<input id="loginPassword" type="password" autocomplete="current-password" required placeholder="รหัสผ่าน"></label>
+      <button class="primary" type="submit">เข้าสู่ระบบ</button><small id="loginMessage"></small>
+    </form>
+  </section>
   <aside class="sidebar">
+    <button id="collapseSidebar" class="collapse-sidebar" aria-label="ย่อหรือขยายเมนู" title="ย่อหรือขยายเมนู">‹</button>
     <a class="brand" href="#" aria-label="Classroom OS หน้าแรก"><span>CO</span><div>Classroom OS<small>WRK · Academic workspace</small></div></a>
     <div class="term-chip"><i></i><span>ภาคเรียนปัจจุบัน<strong>1 / 2569</strong></span></div>
     <nav id="nav" aria-label="เมนูหลัก">
@@ -32,7 +42,8 @@
       <div class="top-actions">
         <div class="clock"><strong id="clockTime">--:--</strong><span id="todayLabel"></span></div>
         <span id="syncStatus" class="sync"><i></i> กำลังเชื่อมต่อ</span>
-        <button id="profileButton" class="profile-button"><span id="profileAvatar">สธ</span><span><strong id="profileName">ครูสุรเดช</strong><small id="profileRole">ครูผู้สอน</small></span><b>⌄</b></button>
+        <button id="profileButton" class="profile-button"><span id="profileAvatar">ผช</span><span><strong id="profileName">ผู้ใช้งาน</strong><small id="profileRole">กำลังโหลด</small></span><b>⌄</b></button>
+        <button id="logoutButton" class="icon logout-button" title="ออกจากระบบ" aria-label="ออกจากระบบ">↪</button>
       </div>
     </header>
 
@@ -53,6 +64,11 @@
         <div class="dashboard-grid">
           <article class="panel chart-panel"><div class="panel-head"><div><small>ATTENDANCE PULSE</small><h3>ภาพรวมการเข้าเรียน</h3></div><button class="link" data-go="attendance">ดูรายชื่อ →</button></div><div id="attendanceChart" class="donut-wrap"></div></article>
           <article class="panel"><div class="panel-head"><div><small>QUICK START</small><h3>ทำงานต่อได้ทันที</h3></div></div><div class="quick"><button data-go="students"><b>＋</b><span>เพิ่มหรือนำเข้านักเรียน<small>CSV · Google Sheets · Migration</small></span><i>→</i></button><button data-go="attendance"><b>✓</b><span>เช็กชื่อประจำวัน<small>บันทึกพร้อมกันทั้งห้อง</small></span><i>→</i></button><button data-go="scores"><b>☆</b><span>บันทึกงานและคะแนน<small>ติดตามการส่งแบบรายบุคคล</small></span><i>→</i></button></div></article>
+        </div>
+        <div class="insight-grid">
+          <article class="panel insight-panel"><div class="panel-head"><div><small>FOLLOW-UP</small><h3>นักเรียนที่ควรติดตาม</h3></div><span id="riskCount" class="metric-pill">0 คน</span></div><div id="riskStudents" class="insight-list"></div></article>
+          <article class="panel insight-panel"><div class="panel-head"><div><small>RECENT ACTIVITY</small><h3>กิจกรรมล่าสุด</h3></div></div><div id="recentActivity" class="timeline"></div></article>
+          <article class="panel insight-panel"><div class="panel-head"><div><small>GRADEBOOK HEALTH</small><h3>สถานะงานและคะแนน</h3></div></div><div id="gradebookHealth" class="health-grid"></div></article>
         </div>
         <article class="panel"><div class="panel-head"><div><small>MY CLASSROOMS</small><h3>ห้องเรียนที่รับผิดชอบ</h3></div><span class="muted">อัปเดตจากข้อมูลล่าสุด</span></div><div id="classOverview" class="class-grid"></div></article>
       </section>
@@ -90,6 +106,6 @@
 
   <section id="printSheet" class="print-sheet"><header><div class="print-brand">CO</div><div><h1 id="printTitle">รายงาน Classroom OS</h1><p id="printSubtitle"></p></div><span>โรงเรียนวัดไร่ขิงวิทยา</span></header><div id="printContent"></div><footer><div>ลงชื่อ ............................................................ ผู้บันทึก<br><span id="printTeacher">(ครูสุรเดช ธรรมประโชติ)</span></div><p>Classroom OS · WRK<br>พัฒนาโดย ครูสุรเดช ธรรมประโชติ</p></footer></section>
 
-  <script type="module" src="./app.js?v=migration-final"></script>
+  <script type="module" src="./app.js?v=classroom-os-2569"></script>
 </body>
 </html>
