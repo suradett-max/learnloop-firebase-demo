@@ -632,6 +632,20 @@ function bindTeacherMonitor() {
   }, (error) => {
     rowsEl.innerHTML = `<div class="empty-state">${icon("search")}<h3>โหลดสถานะสดไม่สำเร็จ</h3><p>${escapeHtml(error.message || "Realtime Database ไม่ตอบสนอง")}</p></div>`;
   });
+  window.setTimeout(() => {
+    if (!rows.length && rowsEl.textContent.includes("กำลังโหลด")) {
+      rows = state.profile ? [{
+        id: state.user.uid,
+        uid: state.user.uid,
+        studentKey: state.studentKey,
+        profile: state.profile,
+        state: "online",
+        currentView: state.currentView
+      }] : [];
+      paint();
+      notify("Realtime Monitor ยังรอข้อมูลสดอยู่ จึงแสดง session ปัจจุบันก่อน", "info");
+    }
+  }, 4000);
 }
 
 async function withBusy(message, task) {
