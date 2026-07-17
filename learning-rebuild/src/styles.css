@@ -499,7 +499,8 @@ select:focus {
 }
 
 .choice {
-  grid-template-columns: 34px 1fr;
+  position: relative;
+  grid-template-columns: 20px 34px 1fr;
   align-items: center;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -517,9 +518,12 @@ select:focus {
 }
 
 .choice input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
+  position: static;
+  opacity: 1;
+  pointer-events: auto;
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--brand);
 }
 
 .choice-key {
