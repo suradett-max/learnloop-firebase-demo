@@ -88,7 +88,9 @@ const state = {
   teacherOpen: false,
   teacherPinOpen: false,
   busy: false,
-  toast: null
+  toast: null,
+  lessonRead: false,
+  lessonActivityIndex: 0
 };
 
 main().catch((error) => showFatal(error));
@@ -151,6 +153,7 @@ function renderTopbar(subject) {
 }
 
 function renderProfileForm() {
+  const avatar = buildAvatarPreview("");
   return `
     <section class="panel profile-panel">
       <div class="split-head">
@@ -159,7 +162,7 @@ function renderProfileForm() {
           <h2>ข้อมูลนักเรียน</h2>
           <p>กรอกข้อมูลให้ตรงทุกครั้ง โดยเฉพาะรหัสนักเรียน ระบบจะใช้จดจำความคืบหน้าแม้เปลี่ยนเครื่องหรือเปิดลิงก์ใหม่</p>
         </div>
-        <span class="big-icon">${icon("user")}</span>
+        <span class="avatar-preview">${avatar}</span>
       </div>
       <form id="profileForm" class="grid-form">
         <label>ชื่อ-สกุล<input name="fullName" required placeholder="เช่น เด็กชายตัวอย่าง เรียนดี"></label>
@@ -190,6 +193,26 @@ function renderHome(subject) {
   const percent = total ? Math.min(100, Math.round((done / total) * 100)) : 0;
   const nextUnit = subjectUnits.find((u) => u.id === (progress.currentUnitId || state.activeUnitId)) || subjectUnits[0];
   return `
+    <section class="profile-hero">
+      <div class="student-card">
+        <div class="avatar-lg">${buildAvatarPreview(state.studentKey || state.profile?.studentId || state.profile?.fullName)}</div>
+        <div>
+          <p class="eyebrow">Student Profile</p>
+          <h2>${escapeHtml(state.profile.fullName || "นักเรียน")}</h2>
+          <span>${escapeHtml(state.profile.grade || "-")} ห้อง ${escapeHtml(state.profile.room || "-")} เลขที่ ${escapeHtml(state.profile.studentNo || "-")}</span>
+        </div>
+      </div>
+      <div class="rank-card">
+        <span>อันดับจำลอง</span>
+        <strong>#${mockRank(progress.xp || 0)}</strong>
+        <small>จัดจาก XP และความคืบหน้า</small>
+      </div>
+      <div class="rank-card accent">
+        <span>สถานะ</span>
+        <strong>${percent}%</strong>
+        <small>เรียนแล้ว ${done}/${total} กิจกรรม</small>
+      </div>
+    </section>
     <section class="hero">
       <div class="hero-copy">
         <p class="pill">${subject.title}</p>
@@ -244,7 +267,7 @@ function renderUnitCard(unit, progress) {
 
 function renderLesson() {
   const unit = units.find((u) => u.id === state.activeUnitId) || units.find((u) => u.subjectCode === state.subjectCode);
-  const lesson = LESSONS[unit.id] || { lead: unit.summary, points: [unit.summary], mission: "อ่านเนื้อหาและตอบคำถามตรวจสอบความเข้าใจ" };
+  const lesson = getLessonModel(unit);
   const questions = lessonQuestions(unit.id);
   return `
     <section class="lesson-layout">
@@ -259,6 +282,10 @@ function renderLesson() {
           ${icon("target")}
           <div><strong>ภารกิจของบทนี้</strong><span>${lesson.mission}</span></div>
         </div>
+        <div class="lesson-actions">
+          <button class="primary" data-action="mark-read" data-unit="${unit.id}">${icon("check")}<span>อ่านจบแล้ว รับ XP การเรียนรู้</span></button>
+          <span class="read-note">${state.lessonRead ? "บันทึกการอ่านแล้ว" : "อ่านเนื้อหาให้จบก่อนทำท้ายบท"}</span>
+        </div>
       </article>
       <aside class="panel lesson-side">
         <h3>ขั้นตอนเรียนหน่วยนี้</h3>
@@ -267,7 +294,7 @@ function renderLesson() {
           <li>ตอบตรวจสอบความเข้าใจ ${questions.length} ข้อ</li>
           <li>ดูผลและไปหน่วยถัดไป</li>
         </ol>
-        <button class="primary full" data-action="start-check" data-unit="${unit.id}">${icon("clipboard")}<span>เริ่มตรวจสอบความเข้าใจ</span></button>
+        <button class="primary full" data-action="start-check" data-unit="${unit.id}">${icon("clipboard")}<span>ทำแบบทดสอบท้ายบท</span></button>
         <button class="ghost full" data-action="home">${icon("home")}<span>กลับเส้นทางบทเรียน</span></button>
       </aside>
     </section>
@@ -276,19 +303,21 @@ function renderLesson() {
 }
 
 function renderInlineQuiz(unit) {
+  const current = state.currentQuiz[state.lessonActivityIndex] || state.currentQuiz[0];
+  const total = state.currentQuiz.length;
   return `
     <section class="panel quiz-panel">
       <div class="section-head">
         <div>
-          <p class="eyebrow">Check Understanding</p>
-          <h2>ตรวจสอบความเข้าใจ: ${unit.title}</h2>
+          <p class="eyebrow">Chapter Quiz</p>
+          <h2>แบบทดสอบท้ายบท: ${unit.title}</h2>
         </div>
-        <span class="status-chip">${Object.keys(state.answers).length}/${state.currentQuiz.length} ข้อ</span>
+        <span class="status-chip">ข้อ ${Math.min(state.lessonActivityIndex + 1, total)}/${total}</span>
       </div>
-      <div class="quiz-list">${state.currentQuiz.map((q, index) => renderQuestion(q, index)).join("")}</div>
+      <div class="quiz-list">${current ? renderQuestion(current, state.lessonActivityIndex) : ""}</div>
       <div class="action-row">
         <button class="ghost" data-action="clear-answers">${icon("refresh")}<span>ล้างคำตอบ</span></button>
-        <button class="primary" data-action="submit-check">${icon("send")}<span>ส่งตรวจและรับ XP</span></button>
+        <button class="primary" data-action="submit-one">${icon("send")}<span>ตรวจข้อนี้</span></button>
       </div>
     </section>
   `;
@@ -361,6 +390,7 @@ function renderProgress() {
         <div>${icon("target")}<span>ขั้นต่อไป: ${nextUnit ? nextUnit.title : "ทบทวนและจำลองสอบ"}</span></div>
         ${nextUnit ? `<button class="primary" data-action="open-unit" data-unit="${nextUnit.id}">${icon("arrow")}<span>ไปบทเรียนถัดไป</span></button>` : ""}
       </div>
+      ${renderLeaderboard("ภาพรวมอันดับห้อง", true)}
     </section>
   `;
 }
@@ -395,6 +425,7 @@ function renderTeacherMonitor() {
           <button class="icon-btn" data-action="close-teacher" title="ปิด">${icon("close")}</button>
         </div>
         <div class="monitor-summary" id="monitorSummary"></div>
+        ${renderLeaderboard("Leaderboard สดในห้อง", false)}
         <div class="filters">
           <input id="monitorName" placeholder="ค้นหาชื่อ">
           <select id="monitorGrade"><option value="">ทุกชั้น</option>${range(1, 6).map((n) => `<option>ม.${n}</option>`).join("")}</select>
@@ -510,8 +541,13 @@ async function handleAction(action, data) {
     state.activeUnitId = data.unit || state.activeUnitId;
     state.currentQuiz = lessonQuestions(state.activeUnitId);
     state.answers = {};
-    notify("เริ่มตรวจสอบความเข้าใจ เลือกคำตอบให้ครบทุกข้อ", "success");
+    state.lessonActivityIndex = 0;
+    notify("เริ่มแบบทดสอบท้ายบท ตรวจทีละข้อ มีคำอธิบายและ XP", "success");
     render();
+    return;
+  }
+  if (action === "mark-read") {
+    await awardReadXp(data.unit || state.activeUnitId);
     return;
   }
   if (action === "clear-answers") {
@@ -522,6 +558,10 @@ async function handleAction(action, data) {
   }
   if (action === "submit-check" || action === "submit-exam") {
     await submitQuiz(action === "submit-check");
+    return;
+  }
+  if (action === "submit-one") {
+    await submitOneLessonQuestion();
     return;
   }
   if (action === "new-exam") {
@@ -549,6 +589,44 @@ async function handleAction(action, data) {
     await updatePresence(state.user, { currentView: action });
     render();
   }
+}
+
+async function awardReadXp(unitId) {
+  if (!unitId) return;
+  const readActivity = {
+    id: `${unitId}_READ`,
+    unitId,
+    subjectCode: state.subjectCode,
+    difficulty: "read",
+    correctKey: "READ"
+  };
+  await withBusy("กำลังบันทึกการอ่าน", async () => {
+    const result = await awardActivity(state.user, state.studentKey, state.subjectCode, readActivity, "READ", false);
+    state.progress = result.progress;
+    state.lessonRead = true;
+    notify(`บันทึกการอ่านแล้ว +${result.xpAwarded || 0} XP`, "success");
+  });
+}
+
+async function submitOneLessonQuestion() {
+  const question = state.currentQuiz[state.lessonActivityIndex];
+  if (!question) return;
+  if (!state.answers[question.id]) {
+    notify("เลือกคำตอบก่อนตรวจข้อนี้", "error");
+    return;
+  }
+  await withBusy("กำลังตรวจคำตอบ", async () => {
+    const result = await awardActivity(state.user, state.studentKey, state.subjectCode, question, state.answers[question.id], false);
+    state.progress = result.progress;
+    notify(result.isCorrect ? `ถูกต้อง +${result.xpAwarded || 0} XP` : "ยังไม่ถูก ระบบเก็บไว้ให้ทบทวน", result.isCorrect ? "success" : "error");
+    state.lessonActivityIndex += 1;
+    if (state.lessonActivityIndex >= state.currentQuiz.length) {
+      await completeCurrentUnit();
+      state.currentQuiz = [];
+      state.answers = {};
+      state.currentView = "progress";
+    }
+  });
 }
 
 async function submitQuiz(isLessonCheck) {
@@ -675,6 +753,73 @@ function notify(message, type = "success") {
 
 function lessonQuestions(unitId) {
   return pickQuestions(state.subjectCode, 3, unitId);
+}
+
+function getLessonModel(unit) {
+  if (LESSONS[unit.id]) return LESSONS[unit.id];
+  const items = Array.isArray(unit.items) ? unit.items : String(unit.summary || "").split(/\s*\/\s*/).filter(Boolean);
+  return {
+    lead: unit.indicator || unit.summary || "อ่านเนื้อหา จับประเด็นสำคัญ แล้วตอบท้ายบทเพื่อสะสม XP",
+    points: items.slice(0, 5),
+    mission: "อธิบายประเด็นสำคัญด้วยภาษาของตนเอง และเลือกคำตอบที่ตรงกับหลักฐาน/หลักธรรมมากที่สุด"
+  };
+}
+
+function buildAvatarPreview(seed = "") {
+  const id = hash(seed || "student");
+  const colors = ["#5b4bff", "#19b4c6", "#ff6a21", "#16a34a", "#d946ef", "#f59e0b"];
+  const c1 = colors[id % colors.length];
+  const c2 = colors[(id + 2) % colors.length];
+  const face = ["M9 11h.01 M15 11h.01 M9 15c2 1.6 4 1.6 6 0", "M8 14c2 2 6 2 8 0 M9 10h.01 M15 10h.01", "M8.5 14.5c2.2 1 4.8 1 7 0 M9 11h.01 M15 11h.01"][id % 3];
+  return `<svg class="avatar-svg" viewBox="0 0 64 64" aria-hidden="true">
+    <defs><linearGradient id="g${id}" x1="0" x2="1"><stop stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
+    <circle cx="32" cy="32" r="30" fill="url(#g${id})"/>
+    <circle cx="32" cy="30" r="15" fill="rgba(255,255,255,.82)"/>
+    <path d="${face}" fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round"/>
+    <path d="M18 53c4-9 24-9 28 0" fill="rgba(255,255,255,.82)"/>
+  </svg>`;
+}
+
+function renderLeaderboard(title, compact) {
+  const rows = buildMockLeaderboard();
+  return `<section class="${compact ? "leaderboard compact" : "leaderboard"}">
+    <div class="section-head"><div><p class="eyebrow">Ranking</p><h2>${title}</h2></div><span class="status-chip">XP / Progress</span></div>
+    <div class="podium">
+      ${rows.slice(0, 3).map((r, i) => `<article class="podium-card rank-${i + 1}"><b>#${i + 1}</b><div class="avatar-sm">${buildAvatarPreview(r.key)}</div><strong>${escapeHtml(r.name)}</strong><span>${r.xp} XP</span></article>`).join("")}
+    </div>
+    <div class="rank-list">${rows.slice(3, 8).map((r, i) => `<article><b>${i + 4}</b><div class="avatar-xs">${buildAvatarPreview(r.key)}</div><span>${escapeHtml(r.name)}</span><strong>${r.xp}</strong></article>`).join("")}</div>
+  </section>`;
+}
+
+function buildMockLeaderboard() {
+  const me = {
+    key: state.studentKey || "me",
+    name: state.profile?.fullName || "นักเรียนของฉัน",
+    xp: Number(state.progress?.xp || 0)
+  };
+  const base = [
+    { key: "seed1", name: "นักเรียนตัวอย่าง 1", xp: 180 },
+    { key: "seed2", name: "นักเรียนตัวอย่าง 2", xp: 140 },
+    { key: "seed3", name: "นักเรียนตัวอย่าง 3", xp: 105 },
+    { key: "seed4", name: "นักเรียนตัวอย่าง 4", xp: 84 },
+    { key: "seed5", name: "นักเรียนตัวอย่าง 5", xp: 62 },
+    { key: "seed6", name: "นักเรียนตัวอย่าง 6", xp: 34 },
+    me
+  ];
+  return base.sort((a, b) => b.xp - a.xp);
+}
+
+function mockRank(xp) {
+  if (xp >= 180) return 1;
+  if (xp >= 140) return 2;
+  if (xp >= 105) return 3;
+  if (xp >= 62) return 4;
+  if (xp >= 34) return 5;
+  return 6;
+}
+
+function hash(value) {
+  return [...String(value)].reduce((sum, ch) => (sum * 31 + ch.charCodeAt(0)) >>> 0, 7);
 }
 
 function pickQuestions(subjectCode, count, unitId = "") {
