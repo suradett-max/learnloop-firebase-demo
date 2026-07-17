@@ -2,7 +2,7 @@ import { ensureAuth } from "./firebase.js";
 import { subjects, units, buildQuestionBank } from "./data/seedContent.js";
 import { awardActivity, getProgress, saveNavigation, upsertProfile } from "./services/progress.js?v=firestore-cdn";
 import { startPresence, updatePresence } from "./services/presence.js?v=instant-presence";
-import { watchPresence } from "./services/monitor.js";
+import { watchPresence } from "./services/monitor.js?v=plain-presence";
 
 const app = document.querySelector("#app");
 const questionBank = buildQuestionBank();
@@ -629,6 +629,8 @@ function bindTeacherMonitor() {
   watchPresence((nextRows) => {
     rows = nextRows;
     paint();
+  }, (error) => {
+    rowsEl.innerHTML = `<div class="empty-state">${icon("search")}<h3>โหลดสถานะสดไม่สำเร็จ</h3><p>${escapeHtml(error.message || "Realtime Database ไม่ตอบสนอง")}</p></div>`;
   });
 }
 
