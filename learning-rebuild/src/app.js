@@ -1,6 +1,6 @@
 import { ensureAuth } from "./firebase.js";
 import { subjects, units, buildQuestionBank } from "./data/seedContent.js";
-import { awardActivity, getProgress, saveNavigation, upsertProfile } from "./services/progress.js";
+import { awardActivity, getProgress, saveNavigation, upsertProfile } from "./services/progress.js?v=firestore-cdn";
 import { startPresence, updatePresence } from "./services/presence.js";
 import { watchPresence } from "./services/monitor.js";
 

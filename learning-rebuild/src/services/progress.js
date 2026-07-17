@@ -6,7 +6,7 @@ import {
   setDoc,
   collection,
   arrayUnion
-} from "firebase/firestore";
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { db } from "../firebase.js";
 import { buildIdentityAliases, buildJoinCode, buildStudentKey } from "./identity.js";
 
