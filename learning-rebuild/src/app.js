@@ -1,3 +1,4 @@
+import "./styles.css";
 import { ensureAuth } from "./firebase.js";
 import { subjects, units, buildQuestionBank } from "./data/seedContent.js";
 import { awardActivity, getProgress, saveNavigation, upsertProfile } from "./services/progress.js";
@@ -69,7 +70,7 @@ function renderProfileForm() {
       <p>กรอกครั้งเดียว ระบบจะผูกกับ Firebase Auth และจดจำด้วยรหัสนักเรียน/เลขที่/ชื่อ</p>
       <form id="profileForm" class="grid-form">
         <label>ชื่อ-สกุล<input name="fullName" required placeholder="พิมพ์ชื่อและนามสกุล"></label>
-        <label>รหัสนักเรียน<input name="studentId" placeholder="ถ้ามีให้กรอก"></label>
+          <label>รหัสนักเรียน<input name="studentId" placeholder="ใช้จดจำเมื่อเปลี่ยนเครื่อง" required></label>
         <label>เลขที่<input name="studentNo" required inputmode="numeric"></label>
         <label>ระดับชั้น<select name="grade">${range(1, 6).map((n) => `<option>ม.${n}</option>`).join("")}</select></label>
         <label>ห้อง<select name="room">${range(1, 15).map((n) => `<option>${n}</option>`).join("")}</select></label>
@@ -254,7 +255,7 @@ async function handleAction(action, data) {
     const unitId = data.unit;
     state.currentQuiz = pickQuestions(state.subjectCode, 5, unitId);
     state.answers = {};
-    await saveNavigation(state.user, state.subjectCode, { currentUnitId: unitId });
+    await saveNavigation(state.user, state.studentKey, state.subjectCode, { currentUnitId: unitId });
     updatePresence(state.user, { currentView: `unit:${unitId}` });
     render();
   }

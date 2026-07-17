@@ -23,3 +23,13 @@ export function buildIdentityAliases(profile) {
   return [...aliases];
 }
 
+export function buildJoinCode(profile) {
+  const studentId = normalizeText(profile.studentId);
+  if (studentId) return studentId;
+  return [
+    normalizeText(profile.grade),
+    normalizeText(profile.room),
+    normalizeText(profile.studentNo).padStart(2, "0"),
+    normalizeText(profile.fullName)
+  ].join("|");
+}

@@ -5,13 +5,10 @@ import {
   serverTimestamp,
   setDoc,
   collection,
-  query,
-  where,
-  getDocs,
-  limit
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+  arrayUnion
+} from "firebase/firestore";
 import { db } from "../firebase.js";
-import { buildIdentityAliases, buildStudentKey } from "./identity.js";
+import { buildIdentityAliases, buildJoinCode, buildStudentKey } from "./identity.js";
 
 export function emptyProgress(uid, studentKey, subjectCode = "S22102") {
   return {
@@ -31,8 +28,8 @@ export function emptyProgress(uid, studentKey, subjectCode = "S22102") {
 export async function upsertProfile(user, profile) {
   const studentKey = buildStudentKey(profile);
   const aliases = buildIdentityAliases(profile);
-  const canonical = await findCanonicalStudentKey(user.uid, aliases);
-  const finalKey = canonical || studentKey;
+  const joinCode = buildJoinCode(profile);
+  const finalKey = studentKey;
   await setDoc(doc(db, "users", user.uid), {
     uid: user.uid,
     studentKey: finalKey,
@@ -42,7 +39,18 @@ export async function upsertProfile(user, profile) {
   }, { merge: true });
   await setDoc(doc(db, "studentIndex", finalKey), {
     uid: user.uid,
+    latestUid: user.uid,
     studentKey: finalKey,
+    joinCode,
+    aliases,
+    profile,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+  await setDoc(doc(db, "students", finalKey), {
+    studentKey: finalKey,
+    joinCode,
+    latestUid: user.uid,
+    linkedUids: arrayUnion(user.uid),
     aliases,
     profile,
     updatedAt: serverTimestamp()
@@ -51,17 +59,24 @@ export async function upsertProfile(user, profile) {
 }
 
 export async function getProgress(user, studentKey, subjectCode) {
-  const ref = doc(db, "users", user.uid, "progress", subjectCode);
+  const ref = doc(db, "students", studentKey, "progress", subjectCode);
   const snap = await getDoc(ref);
   if (snap.exists()) return { ...emptyProgress(user.uid, studentKey, subjectCode), ...snap.data() };
+  const legacyRef = doc(db, "users", user.uid, "progress", subjectCode);
+  const legacySnap = await getDoc(legacyRef);
+  if (legacySnap.exists()) {
+    const migrated = { ...emptyProgress(user.uid, studentKey, subjectCode), ...legacySnap.data(), uid: user.uid, studentKey };
+    await setDoc(ref, { ...migrated, migratedFromUid: user.uid, updatedAt: serverTimestamp() }, { merge: true });
+    return migrated;
+  }
   const created = emptyProgress(user.uid, studentKey, subjectCode);
   await setDoc(ref, { ...created, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
   return created;
 }
 
 export async function awardActivity(user, studentKey, subjectCode, activity, selectedKey, usedHint = false) {
-  const progressRef = doc(db, "users", user.uid, "progress", subjectCode);
-  const attemptRef = doc(collection(db, "users", user.uid, "attempts"));
+  const progressRef = doc(db, "students", studentKey, "progress", subjectCode);
+  const attemptRef = doc(collection(db, "students", studentKey, "attempts"));
   const isCorrect = selectedKey === activity.correctKey;
   const baseXp = activity.difficulty === "hard" ? 16 : 10;
   const xpGain = isCorrect ? Math.max(1, baseXp - (usedHint ? 3 : 0)) : 0;
@@ -107,17 +122,7 @@ export async function awardActivity(user, studentKey, subjectCode, activity, sel
   return result;
 }
 
-export async function saveNavigation(user, subjectCode, patch) {
-  const ref = doc(db, "users", user.uid, "progress", subjectCode);
-  await setDoc(ref, { ...patch, updatedAt: serverTimestamp() }, { merge: true });
-}
-
-async function findCanonicalStudentKey(uid, aliases) {
-  for (const alias of aliases) {
-    const q = query(collection(db, "studentIndex"), where("aliases", "array-contains", alias), limit(1));
-    const snap = await getDocs(q);
-    const found = snap.docs.find((item) => item.data().uid === uid || item.data().studentKey);
-    if (found) return found.data().studentKey || found.id;
-  }
-  return null;
+export async function saveNavigation(user, studentKey, subjectCode, patch) {
+  const ref = doc(db, "students", studentKey, "progress", subjectCode);
+  await setDoc(ref, { ...patch, uid: user.uid, studentKey, updatedAt: serverTimestamp() }, { merge: true });
 }
