@@ -466,6 +466,10 @@ select:focus {
   gap: 14px;
 }
 
+.quiz-panel {
+  margin-bottom: 92px;
+}
+
 .question-card {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -507,6 +511,7 @@ select:focus {
   padding: 12px;
   background: #fff;
   font-weight: 700;
+  cursor: pointer;
   transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
 }
 
@@ -535,6 +540,10 @@ select:focus {
   color: white;
   background: var(--brand);
   font-weight: 900;
+}
+
+.choice span {
+  pointer-events: none;
 }
 
 .progress-panel .big {
