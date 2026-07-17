@@ -4,6 +4,14 @@ import { rtdb } from "../firebase.js";
 export function startPresence(user, studentKey, profile) {
   const statusRef = ref(rtdb, `presence/${user.uid}`);
   const connectedRef = ref(rtdb, ".info/connected");
+  set(statusRef, {
+    uid: user.uid,
+    studentKey,
+    profile,
+    state: "online",
+    currentView: "home",
+    lastChanged: serverTimestamp()
+  });
   const unsubscribe = onValue(connectedRef, (snapshot) => {
     if (!snapshot.val()) return;
     onDisconnect(statusRef).set({
