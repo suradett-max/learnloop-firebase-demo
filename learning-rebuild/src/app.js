@@ -503,6 +503,7 @@ async function handleAction(action, data) {
       await saveNavigation(state.user, state.studentKey, state.subjectCode, { currentUnitId: state.activeUnitId });
       await updatePresence(state.user, { currentView: `lesson:${state.activeUnitId}` });
     });
+    notify("เปิดบทเรียนแล้ว อ่านเนื้อหาแล้วกดตรวจสอบความเข้าใจได้เลย", "success");
     return;
   }
   if (action === "start-check") {
